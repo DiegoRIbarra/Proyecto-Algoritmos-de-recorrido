@@ -103,9 +103,12 @@ class GraphAlgorithms:
                 current = following
         return self.finish(start, goal, distances[start], previous, steps)
 
-    def a_star(self, start, goal):
+    def a_star(self, start, goal, heuristic_name="Euclidiana"):
         goal_x, goal_y = self.nodes[goal]
-        heuristic = lambda node: math.hypot(self.nodes[node][0] - goal_x, self.nodes[node][1] - goal_y) / 16
+        if heuristic_name == "Manhattan":
+            heuristic = lambda node: (abs(self.nodes[node][0] - goal_x) + abs(self.nodes[node][1] - goal_y)) / 16
+        else:
+            heuristic = lambda node: math.hypot(self.nodes[node][0] - goal_x, self.nodes[node][1] - goal_y) / 16
         distances = {node: math.inf for node in self.nodes}
         previous, closed = {}, set()
         distances[start] = 0

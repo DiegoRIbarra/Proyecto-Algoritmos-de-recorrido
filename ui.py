@@ -77,6 +77,7 @@ class ShortestPathApp(tk.Tk):
         self.start_var = tk.StringVar(value="29")
         self.goal_var = tk.StringVar(value="70")
         self.algorithm_var = tk.StringVar(value="Dijkstra")
+        self.heuristic_var = tk.StringVar(value="Euclidiana")
         for column, label, variable in ((0, "INICIO", self.start_var), (1, "DESTINO", self.goal_var)):
             field = tk.Frame(fields, bg=PANEL)
             field.grid(row=0, column=column, sticky="ew", padx=(0, 8) if column == 0 else (8, 0))
@@ -85,7 +86,14 @@ class ShortestPathApp(tk.Tk):
         fields.columnconfigure(0, weight=1)
         fields.columnconfigure(1, weight=1)
         tk.Label(controls, text="ALGORITMO", font=("Segoe UI", 8, "bold"), fg=MUTED, bg=PANEL).pack(anchor="w", pady=(18, 6))
-        ttk.Combobox(controls, textvariable=self.algorithm_var, values=["Dijkstra", "Bellman-Ford", "Floyd-Warshall", "A*"], state="readonly").pack(fill="x")
+        algorithm_selector = ttk.Combobox(controls, textvariable=self.algorithm_var, values=["Dijkstra", "Bellman-Ford", "Floyd-Warshall", "A*"], state="readonly")
+        algorithm_selector.pack(fill="x")
+        algorithm_selector.bind("<<ComboboxSelected>>", self.toggle_heuristic)
+        self.heuristic_controls = tk.Frame(controls, bg=PANEL)
+        self.heuristic_controls.pack(fill="x", pady=(14, 0))
+        tk.Label(self.heuristic_controls, text="HEURÍSTICA DE A*", font=("Segoe UI", 8, "bold"), fg=MUTED, bg=PANEL).pack(anchor="w", pady=(0, 6))
+        ttk.Combobox(self.heuristic_controls, textvariable=self.heuristic_var, values=["Euclidiana", "Manhattan"], state="readonly").pack(fill="x")
+        self.heuristic_controls.pack_forget()
         buttons = tk.Frame(controls, bg=PANEL)
         buttons.pack(fill="x", pady=(18, 0))
         self.play_button = tk.Button(buttons, text="▶  EJECUTAR", command=self.run_search, font=("Segoe UI", 10, "bold"), fg=BG, bg=CYAN, activebackground="#87eeee", relief="flat", cursor="hand2", padx=14, pady=10)
@@ -93,6 +101,12 @@ class ShortestPathApp(tk.Tk):
         tk.Button(buttons, text="↺", command=self.reset, font=("Segoe UI", 15), fg=TEXT, bg=PANEL_2, activebackground="#244569", relief="flat", cursor="hand2", width=4, pady=5).pack(side="left", padx=(8, 0))
         self.summary = tk.Label(controls, text="Listo para explorar", font=("Segoe UI", 10), fg=MUTED, bg=PANEL, anchor="w")
         self.summary.pack(fill="x", pady=(16, 0))
+
+    def toggle_heuristic(self, _event=None):
+        if self.algorithm_var.get() == "A*":
+            self.heuristic_controls.pack(fill="x", pady=(14, 0), before=self.play_button.master)
+        else:
+            self.heuristic_controls.pack_forget()
 
     def change_graph(self, _event=None):
         self.graph_name = self.graph_var.get()
@@ -183,7 +197,10 @@ class ShortestPathApp(tk.Tk):
             messagebox.showinfo("Mismos nodos", "El inicio y el destino deben ser distintos.")
             return
         algorithms: dict[str, Callable] = {"Dijkstra": self.graph.dijkstra, "Bellman-Ford": self.graph.bellman_ford, "Floyd-Warshall": self.graph.floyd_warshall, "A*": self.graph.a_star}
-        self.steps, self.path, _ = algorithms[self.algorithm_var.get()](start, goal)
+        if self.algorithm_var.get() == "A*":
+            self.steps, self.path, _ = self.graph.a_star(start, goal, self.heuristic_var.get())
+        else:
+            self.steps, self.path, _ = algorithms[self.algorithm_var.get()](start, goal)
         self.current_step, self.running = -1, True
         self.play_button.configure(text="Ⅱ  PAUSAR")
         self.summary.configure(text=f"{self.algorithm_var.get()} · preparando ejecución", fg=CYAN)
